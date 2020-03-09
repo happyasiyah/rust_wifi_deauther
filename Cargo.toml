@@ -1,0 +1,9 @@
+[package]
+name = "rust_wifi_deauther"
+version = "0.1.0"
+authors = ["markrp <markrepedersen@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+mio = { version = "0.7", features = ["udp", "os-poll"] }
+pnet = { version = "0.25.0"}
