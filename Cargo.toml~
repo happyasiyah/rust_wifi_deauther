@@ -1,7 +1,0 @@
-[package]
-name = "rust_wifi_deauther"
-version = "0.1.0"
-authors = ["markrp <markrepedersen@gmail.com>"]
-
-[dependencies]
-mio = "0.7"

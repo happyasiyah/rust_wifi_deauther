@@ -1,4 +1,7 @@
 use crate::parse;
+use crate::packet;
+
+use custom_debug_derive::*;
 use std::fmt;
 use derive_try_from_primitive::*;
 use nom::{
@@ -10,8 +13,6 @@ use nom::{
 #[repr(u16)]
 pub enum EtherType {
     IPv4 = 0x0800,
-    ARP = 0x0806,
-    IPv6 = 0x86DD,
 }
 
 impl EtherType {
@@ -54,24 +55,37 @@ impl Addr {
 }
 
 #[derive(Debug)]
+pub enum Payload {
+    IPv4(packet::Packet),
+    Unknown,
+}
+
+#[derive(CustomDebug)]
 pub struct Frame {
     pub dst: Addr,
     pub src: Addr,
+    pub payload: Payload,
+    #[debug(skip)]
     pub ether_type: Option<EtherType>,
 }
 
 impl Frame {
     pub fn parse(i: parse::Input) -> parse::Result<Self> {
-        context(
-            "Ethernet frame",
-            map(
-                tuple((Addr::parse, Addr::parse, EtherType::parse)),
-                |(dst, src, ether_type)| Self {
-                    dst,
-                    src,
-                    ether_type,
-                },
-            ),
-        )(i)
+        context("Ethernet frame", |i| {
+            let (i, (dst, src)) = tuple((Addr::parse, Addr::parse))(i)?;
+            let (i, ether_type) = EtherType::parse(i)?;
+            let (i, payload) = match ether_type {
+                Some(EtherType::IPv4) => map(packet::Packet::parse, Payload::IPv4)(i)?,
+                None => (i, Payload::Unknown),
+            };
+
+            let res = Self {
+                dst,
+                src,
+                ether_type,
+                payload,
+            };
+            Ok((i, res))
+        })(i)
     }
 }

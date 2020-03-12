@@ -1,39 +1,41 @@
 mod frame;
 mod parse;
+mod packet;
 
-use pcap::{Capture, Device, Linktype};
-
-const DLT_IEEE802_11: i32 = 105;
+use pnet::datalink;
+use pnet::datalink::Channel::Ethernet;
 
 fn main() {
-    let interface: Device = Device::list()
-	.unwrap()
-	.into_iter()
-	.find(|iface| iface.name == "en0")
-	.unwrap();
-    let mut capture = Capture::from_device(interface).unwrap()
-	.rfmon(true)
-	.open()
-	.unwrap();
+    let interfaces = datalink::interfaces();
+    let interface = interfaces.into_iter()
+                              .filter(|iface| iface.name == "en0")
+                              .next()
+                              .unwrap();
 
-    // 105 =  data link type
-    capture
-	.set_datalink(Linktype(DLT_IEEE802_11))
-	.expect("Invalid data link type set");
-    
-    while let Ok(packet) = capture.next() {
-        process_packet(packet.data);
+    let (mut tx, mut rx) = match datalink::channel(&interface, Default::default()) {
+        Ok(Ethernet(tx, rx)) => (tx, rx),
+        Ok(_) => panic!("Unhandled channel type"),
+        Err(e) => panic!("An error occurred when creating the datalink channel: {}", e)
+    };
+
+    loop {
+        match rx.next() {
+            Ok(packet) => {
+		process_packet(packet);
+	    }
+	    Err(e) => {
+                panic!("An error occurred while reading: {}", e);
+            }
+	}
     }
+	
 }
 
 fn process_packet(packet: &[u8]) {
     match frame::Frame::parse(packet) {
-        Ok((remaining, frame)) => {
+        Ok((_remaining, frame)) => {
             if let Some(frame::EtherType::IPv4) = frame.ether_type {
-                let protocol = remaining[9];
-                println!("ipv4, protocol 0x{:02x}", protocol);
-            } else {
-                println!("non-ipv4!");
+                println!("{:#?}", frame);
             }
         }
         Err(nom::Err::Error(e)) => {
