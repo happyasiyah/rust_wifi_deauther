@@ -13,6 +13,7 @@ use nom::{
 #[repr(u16)]
 pub enum EtherType {
     IPv4 = 0x0800,
+    WIFI = 0x890d,
 }
 
 impl EtherType {
@@ -22,7 +23,7 @@ impl EtherType {
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
-pub struct Addr([u8; 6]);
+pub struct Addr(pub [u8; 6]);
 
 impl fmt::Display for Addr {
     fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
@@ -44,7 +45,6 @@ impl fmt::Debug for Addr {
 impl Addr {
     pub fn new(slice: &[u8]) -> Self {
         let mut res = Self([0u8; 6]);
-        // note: this will panic if the slice is too small!
         res.0.copy_from_slice(&slice[..6]);
         res
     }
@@ -57,6 +57,7 @@ impl Addr {
 #[derive(Debug)]
 pub enum Payload {
     IPv4(packet::Packet),
+    WIFI(packet::Packet),
     Unknown,
 }
 
@@ -65,7 +66,6 @@ pub struct Frame {
     pub dst: Addr,
     pub src: Addr,
     pub payload: Payload,
-    #[debug(skip)]
     pub ether_type: Option<EtherType>,
 }
 
@@ -76,6 +76,7 @@ impl Frame {
             let (i, ether_type) = EtherType::parse(i)?;
             let (i, payload) = match ether_type {
                 Some(EtherType::IPv4) => map(packet::Packet::parse, Payload::IPv4)(i)?,
+		Some(EtherType::WIFI) => map(packet::Packet::parse, Payload::WIFI)(i)?,
                 None => (i, Payload::Unknown),
             };
 
