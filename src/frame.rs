@@ -15,22 +15,8 @@ pub enum EtherType {
 }
 
 impl EtherType {
-    pub fn parse(i: parse::Input) -> parse::Result<Self> {
-        let original_i = i;
-        let (i, x) = context("EtherType", be_u16)(i)?;
-        // `i` is now the remaining input after reading the be_u16
-
-        match EtherType::try_from(x) {
-            Some(typ) => Ok((i, typ)),
-            None => {
-                let msg = format!("unknown EtherType 0x{:04X}", x);
-                // we could hardcode `&original_i[..4]` but why bother?
-                use nom::Offset;
-                let err_slice = &original_i[..original_i.offset(i)];
-
-                Err(nom::Err::Error(parse::Error::custom(err_slice, msg)))
-            }
-        }
+    pub fn parse(i: parse::Input) -> parse::Result<Option<Self>> {
+        context("EtherType", map(be_u16, Self::try_from))(i)
     }
 }
 
@@ -71,7 +57,7 @@ impl Addr {
 pub struct Frame {
     pub dst: Addr,
     pub src: Addr,
-    pub ether_type: EtherType,
+    pub ether_type: Option<EtherType>,
 }
 
 impl Frame {
