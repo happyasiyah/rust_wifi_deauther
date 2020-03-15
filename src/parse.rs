@@ -1,8 +1,54 @@
-use nom::error::{ErrorKind as NomErrorKind, ParseError as NomParseError};
 use std::fmt;
+use std::ops::RangeFrom;
+use ux::*;
+use nom::{
+    ErrorConvert,
+    Slice,
+    bits::complete::take as take_bits, combinator::map,
+    error::{ErrorKind as NomErrorKind, ParseError as NomParseError}
+};
 
 pub type Input<'a> = &'a [u8];
 pub type Result<'a, T> = nom::IResult<Input<'a>, T, Error<Input<'a>>>;
+pub type BitInput<'a> = (&'a [u8], usize);
+pub type BitResult<'a, T> = nom::IResult<BitInput<'a>, T, Error<BitInput<'a>>>;
+
+pub trait BitParsable
+where
+    Self: Sized,
+{
+    fn parse(i: BitInput) -> BitResult<Self>;
+}
+
+macro_rules! impl_bit_parsable_for_ux {
+    ($($width: expr),*) => {
+        $(
+            paste::item! {
+                impl BitParsable for [<u $width>] {
+                    fn parse(i: BitInput) -> BitResult<Self> {
+                        map(take_bits($width as usize), Self::new)(i)
+                    }
+                }
+            }
+        )*
+    };
+}
+
+impl_bit_parsable_for_ux!(1, 2, 4);
+
+impl<I> ErrorConvert<Error<I>> for Error<(I, usize)>
+where
+    I: Slice<RangeFrom<usize>>,
+{
+    fn convert(self) -> Error<I> {
+        let errors = self
+            .errors
+            .into_iter()
+            .map(|((rest, offset), err)| (rest.slice(offset / 8..), err))
+            .collect();
+        Error { errors }
+    }
+}
 
 #[derive(Debug)]
 pub enum ErrorKind {
