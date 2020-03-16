@@ -53,9 +53,6 @@ impl fmt::Debug for Addr {
 
 impl Protocol {
     pub fn parse(i: parse::Input) -> parse::Result<Option<Self>> {
-        // same as EtherType, this time with an u8.
-        // note that `be_u8` is there for completeness, there's
-        // no such thing as a little-endian or big-endian u8.
         context("IPv4 Protocol", map(be_u8, Self::try_from))(i)
     }
 }
@@ -71,7 +68,6 @@ impl Addr {
 
 impl Packet {
     pub fn parse(i: parse::Input) -> parse::Result<Self> {
-        // skip over those first 9 bytes for now
         let (i, _) = take(9_usize)(i)?;
         let (i, protocol) = Protocol::parse(i)?;
         let (i, checksum) = be_u16(i)?;

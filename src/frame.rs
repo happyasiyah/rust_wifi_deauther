@@ -1,13 +1,13 @@
-use crate::parse;
 use crate::packet;
+use crate::parse;
 
 use custom_debug_derive::*;
-use std::fmt;
 use derive_try_from_primitive::*;
 use nom::{
     bytes::complete::take, combinator::map, error::context, number::complete::be_u16,
     sequence::tuple,
 };
+use std::fmt;
 
 #[derive(Debug, TryFromPrimitive)]
 #[repr(u16)]
@@ -48,7 +48,7 @@ impl Addr {
         res.0.copy_from_slice(&slice[..6]);
         res
     }
-    
+
     pub fn parse(i: parse::Input) -> parse::Result<Self> {
         context("MAC address", map(take(6_usize), Self::new))(i)
     }
@@ -76,7 +76,7 @@ impl Frame {
             let (i, ether_type) = EtherType::parse(i)?;
             let (i, payload) = match ether_type {
                 Some(EtherType::IPv4) => map(packet::Packet::parse, Payload::IPv4)(i)?,
-		Some(EtherType::WIFI) => map(packet::Packet::parse, Payload::WIFI)(i)?,
+                Some(EtherType::WIFI) => map(packet::Packet::parse, Payload::WIFI)(i)?,
                 None => (i, Payload::Unknown),
             };
 

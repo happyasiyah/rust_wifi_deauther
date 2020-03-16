@@ -1,6 +1,8 @@
-use std::fmt;
-use std::ops::RangeFrom;
 use ux::*;
+use std::{
+    fmt,
+    ops::RangeFrom,
+};
 use nom::{
     ErrorConvert,
     Slice,
@@ -76,13 +78,7 @@ impl<'a> fmt::Debug for Error<&'a [u8]> {
         let mut shown_input = None;
         let margin_left = 4;
         let margin_str = " ".repeat(margin_left);
-
-        // maximum amount of binary data we'll dump per line
         let maxlen = 60;
-
-        // given a big slice, an offset, and a length, attempt to show
-        // some data before, some data after, and highlight which part
-        // we're talking about with tildes.
         let print_slice =
             |f: &mut fmt::Formatter, s: &[u8], offset: usize, len: usize| -> fmt::Result {
                 let (s, offset, len) = {
@@ -108,9 +104,7 @@ impl<'a> fmt::Debug for Error<&'a [u8]> {
 
                 write!(f, "{}", margin_str)?;
                 for i in 0..s.len() {
-                    // each byte takes three characters, ie "FF "
                     if i == offset + len - 1 {
-                        // ..except the last one
                         write!(f, "~~")?;
                     } else if (offset..offset + len).contains(&i) {
                         write!(f, "~~~")?;
@@ -137,9 +131,6 @@ impl<'a> fmt::Debug for Error<&'a [u8]> {
                     print_slice(f, input, 0, input.len())?;
                 }
                 Some(parent_input) => {
-                    // `nom::Offset` is a trait that lets us get the position
-                    // of a subslice into its parent slice. This works great for
-                    // our error reporting!
                     use nom::Offset;
                     let offset = parent_input.offset(input);
                     print_slice(f, parent_input, offset, input.len())?;
@@ -152,18 +143,15 @@ impl<'a> fmt::Debug for Error<&'a [u8]> {
 
 impl<I> NomParseError<I> for Error<I> {
     fn from_error_kind(input: I, kind: NomErrorKind) -> Self {
-        // was (input, kind)
         let errors = vec![(input, ErrorKind::Nom(kind))];
         Self { errors }
     }
 
     fn append(input: I, kind: NomErrorKind, mut other: Self) -> Self {
-        // was (input, kind)
         other.errors.push((input, ErrorKind::Nom(kind)));
         other
     }
 
-    // new!
     fn add_context(input: I, ctx: &'static str, mut other: Self) -> Self {
         other.errors.push((input, ErrorKind::Context(ctx)));
         other
