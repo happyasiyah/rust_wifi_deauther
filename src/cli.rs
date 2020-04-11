@@ -1,9 +1,8 @@
-use custom_debug_derive::*;
 use clap::{App, Arg};
+use custom_debug_derive::*;
 
 #[derive(CustomDebug)]
 pub struct CLI {
-    pub verbose: bool,
     pub interface: String,
 }
 
@@ -29,10 +28,8 @@ impl CLI {
         let interface = matches
             .value_of("interface")
             .expect("Network interface parameter is required.");
-        let verbose = matches.is_present("verbose");
         CLI {
             interface: String::from(interface),
-            verbose: verbose,
         }
     }
 }
